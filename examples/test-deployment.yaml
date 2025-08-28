@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+      - name: web
+        image: nginx:latest
+        resources:
+          limits:
+            memory: "256Mi"  # Mniej niż limit w polityce (512Mi) - powinno przejść
+            cpu: "250m"      # Mniej niż limit w polityce (500m) - powinno przejść
+          requests:
+            memory: "128Mi"
+            cpu: "100m"

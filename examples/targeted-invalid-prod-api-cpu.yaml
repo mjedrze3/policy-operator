@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+    spec:
+      containers:
+        - name: api
+          image: nginx:1.25
+          resources:
+            limits:
+              cpu: "2"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"

@@ -1,0 +1,74 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: policy-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-operator
+  namespace: policy-system
+  labels:
+    app: policy-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-operator
+  template:
+    metadata:
+      labels:
+        app: policy-operator
+    spec:
+      serviceAccountName: policy-operator
+      containers:
+      - name: manager
+        image: policy-operator:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        args:
+          - --webhook-bind-port=9443
+          - --leader-elect=false
+          - --health-probe-bind-address=:8081
+          - --metrics-bind-address=:8080
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          failureThreshold: 3
+          timeoutSeconds: 5
+        volumeMounts:
+          - name: webhook-certs
+            mountPath: /tmp/k8s-webhook-server/serving-certs
+            readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: policy-webhook-certs

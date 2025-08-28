@@ -1,0 +1,45 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: resourcepolicies.policies.example.com
+spec:
+  group: policies.example.com
+  names:
+    kind: ResourcePolicy
+    listKind: ResourcePolicyList
+    plural: resourcepolicies
+    singular: resourcepolicy
+    shortNames:
+      - rp
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: ["targetObjects", "limits", "policy"]
+              properties:
+                targetObjects:
+                  type: array
+                  items:
+                    type: object
+                    required: ["namespace", "deployment"]
+                    properties:
+                      namespace:
+                        type: string
+                      deployment:
+                        type: string
+                limits:
+                  type: object
+                  properties:
+                    ram:
+                      type: string
+                    cpu:
+                      type: string
+                policy:
+                  type: string

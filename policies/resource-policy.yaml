@@ -1,0 +1,59 @@
+apiVersion: policies.example.com/v1alpha1
+kind: ResourcePolicy
+metadata:
+  name: resource-limit-policy
+spec:
+  targetObjects:
+    - namespace: default
+      deployment: web-app
+    - namespace: production
+      deployment: api-server
+  limits:
+    ram: "512Mi"
+    cpu: "500m"
+  policy: |
+    package kubernetes.policy
+
+    # --- helper: CPU -> millicores (500m -> 500, "0.5" -> 500, 1 -> 1000) ---
+    canonify_cpu(orig) = mc {
+      is_number(orig)
+      mc := orig * 1000
+    }
+    canonify_cpu(orig) = mc {
+      is_string(orig)
+      endswith(orig, "m")
+      mc := to_number(replace(orig, "m", ""))
+    }
+    canonify_cpu(orig) = mc {
+      is_string(orig)
+      not endswith(orig, "m")
+      regex.match("^[0-9]+(\\.[0-9]+)?$", orig)
+      mc := to_number(orig) * 1000
+    }
+    # --- /helper ---
+
+    default allow = false
+
+    allow {
+      check_ram_limit
+      check_cpu_limit
+    }
+
+    check_ram_limit {
+      input.policy.spec.limits.ram != ""
+      c := input.deployment.spec.template.spec.containers[_]
+      c.resources.limits.memory
+      container_ram_bytes := units.parse_bytes(c.resources.limits.memory)
+      policy_ram_bytes := units.parse_bytes(input.policy.spec.limits.ram)
+      container_ram_bytes <= policy_ram_bytes
+    }
+
+    check_cpu_limit {
+      input.policy.spec.limits.cpu != ""
+      c := input.deployment.spec.template.spec.containers[_]
+      c.resources.limits.cpu
+      container_cpu_m := canonify_cpu(c.resources.limits.cpu)
+      policy_cpu_m := canonify_cpu(input.policy.spec.limits.cpu)
+      container_cpu_m <= policy_cpu_m
+    }
+
